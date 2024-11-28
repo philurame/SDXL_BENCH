@@ -1,0 +1,16 @@
+accelerate==0.24.1
+clip @ git+https://github.com/openai/CLIP.git@a1d071733d7111c9c014f024669f959182114e33
+DeepCache==0.1.1
+diffusers==0.31.0
+hqq==0.2.2
+lpips==0.1.4
+numpy @ file:///croot/numpy_and_numpy_base_1682520569166/work
+pytorch-fid==0.3.0
+tgate==1.0.0
+torch==2.4.0+cu118
+torch-fidelity==0.3.0
+torchmetrics==1.5.1
+torchview==0.2.6
+torchvision==0.19.1
+triton==3.0.0
+xformers==0.0.27.post2+cu118

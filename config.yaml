@@ -1,0 +1,20 @@
+generate: 1
+
+solvers:
+- EULER
+
+schedulers:
+- LINEAR
+
+cachers_quantizers:
+- NONE
+
+nfes:
+- 10
+- 17
+- 25
+- 50
+
+datasets:
+- COCO
+- PARTI
