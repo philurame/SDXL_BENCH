@@ -57,6 +57,11 @@ $$a_m^p=R^{-1}_p(h_i)g_p(h_i)/(e^{h_i}-1),\ D_m^x=x_\theta(t_i-m) - x_\theta(t_{
 
 - SNR $\sigma_i:=\sqrt{\dfrac{1-\tilde\alpha_{i}}{\tilde\alpha_{i}}},\ \hat\alpha_i=\prod\limits_{k\leq i}\alpha_k,\ \alpha_0\approx 1$
 
+### `FREEU`
+rebalancing the contributions from the UNet’s skip connections and backbone feature maps by:
+- normalization of backbone params
+- weakening of high-frequency features in skip-connection using fourier domain
+
 ### `LINEAR`
 
 - $t_i=\lfloor999 - i\frac{999}{\text{NFE}}\rceil$
