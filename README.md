@@ -44,8 +44,10 @@ $$C_k=\frac12\int_{t_{i}}^{t_{i-1}}\sqrt{\dfrac{\alpha_{t_{i-1}}}{\alpha_{\tau}}
 
 ### `UNIPC`: Unified Predictor-Corrector, p=2
 - possible to use "Corrector" with other solvers
-$$\text{predictor:}\  \tilde{\boldsymbol{x}}_{t_i}=\frac{\sigma_{t_i}}{\sigma_{t_{i-1}}} \tilde{\boldsymbol{x}}_{t_{i-1}}+\alpha_{t_i}\left(1-e^{-h_i}\right) \boldsymbol{x}_\theta\left(\tilde{\boldsymbol{x}}_{t_{i-1}}, t_{i-1}\right)+\alpha_{t_i} (e^{h_i}-1) \sum_{m=1}^{p-1} a_m^p D_m^x$$
-$$\text{corrector:}\ \tilde{\boldsymbol{x}}_{t_i}^c=\frac{\sigma_{t_i}}{\sigma_{t_{i-1}}} \tilde{\boldsymbol{x}}_{t_{i-1}}+\alpha_{t_i}\left(1-e^{-h_i}\right) \boldsymbol{x}_\theta\left(\tilde{\boldsymbol{x}}_{t_{i-1}}, t_{i-1}\right)+\alpha_{t_i} (e^{h_i}-1) \sum_{m=1}^p a_m^{p-1} D_m^x$$
+$$\text{predictor:}\  \tilde{{x}}_{t_i}=\frac{\sigma_{t_i}}{\sigma_{t_{i-1}}} \tilde{{x}}_{t_{i-1}}+\alpha_{t_i}\left(1-e^{-h_i}\right) {x}_\theta\left(\tilde{{x}}_{t_{i-1}}, t_{i-1}\right)+\alpha_{t_i} (e^{h_i}-1) \sum_{m=1}^{p-1} a_m^p D_m^x$$
+
+$$\text{corrector:}\ \tilde{{x}}_{t_i}^c=\frac{\sigma_{t_i}}{\sigma_{t_{i-1}}} \tilde{{x}}_{t_{i-1}}+\alpha_{t_i}\left(1-e^{-h_i}\right) {x}_\theta\left(\tilde{{x}}_{t_{i-1}}, t_{i-1}\right)+\alpha_{t_i} (e^{h_i}-1) \sum_{m=1}^p a_m^{p-1} D_m^x$$
+
 $$a_m^p=R^{-1}_p(h_i)g_p(h_i)/(e^{h_i}-1),\ D_m^x=x_\theta(t_i-m) - x_\theta(t_{i-1})$$
 
 
