@@ -33,6 +33,6 @@ def decode_vae(pipe, fake_latents):
   fake_latents = fake_latents / pipe.vae.config.scaling_factor
   fake_imgs = torch.zeros(fake_latents.shape[0], 3, 1024, 1024, dtype=torch.uint8, device='cpu')
   for i in tqdm(range(fake_latents.shape[0]), desc='vae decoding...'):
-    decoded_latents = pipe.vae.decode(fake_latents[i:i+1], return_dict=False)[0]
+    decoded_latents = pipe.vae.decode(fake_latents[i:i+1].to(device=pipe.device), return_dict=False)[0]
     fake_imgs[i] = (pipe.image_processor.postprocess(decoded_latents, output_type='pt')*255).to(device='cpu', dtype=torch.uint8)
   return fake_imgs

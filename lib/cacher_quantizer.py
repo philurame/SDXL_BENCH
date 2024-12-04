@@ -60,7 +60,7 @@ class TGATE(BasePipe):
 # QUANTIZERS
 #####################################################################################################
 import sys
-from utils.HQQ_quantize import q_unet
+from utils.hqq_q import q_unet
 
 @cacher_quantizer_registry.add_to_registry("HQQ4")
 class HQQ4(BasePipe):
@@ -78,19 +78,13 @@ class HQQ3(BasePipe):
     q_unet(pipe, nbits=3)
     return pipe
 
-@cacher_quantizer_registry.add_to_registry("VQDM4")
-class VQDM4(BasePipe):
-  @classmethod
-  def from_pretrained(cls):
-    pipe = super().from_pretrained()
-    sys.path.append('/home/mdnikolaev/philurame/SDXL_METRICS/utils')
-    unet = torch.load("/home/mdnikolaev/philurame/Q_LIB/unets/vqdm_4/quantized_unet.pickle", map_location="cuda")    
-    pipe.unet = unet
-    return pipe
-
-
-
-
-
-
-
+# from src.aq import QuantizedConv2D, QuantizedLinear 
+# @cacher_quantizer_registry.add_to_registry("VQDM4")
+# class VQDM4(BasePipe):
+#   @classmethod
+#   def from_pretrained(cls):
+#     pipe = super().from_pretrained()
+#     sys.path.append('/home/mdnikolaev/philurame/SDXL_METRICS')
+#     unet = torch.load("/home/mdnikolaev/philurame/Q_LIB/unets/vqdm_4/quantized_unet.pickle", map_location="cuda")    
+#     pipe.unet = unet
+#     return pipe

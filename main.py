@@ -1,37 +1,51 @@
 import wandb, click
 import torch, os, sys
-from PIL import Image
+from diffusers import AutoencoderKL
 
-from generate_decode import generate, decode_vae
+from lib.generate_decode import generate, decode_vae
+from lib.solver_scheduler import solver_registry, scheduler_registry
+from lib.cacher_quantizer import cacher_quantizer_registry
 
-from solver_scheduler import solver_registry, scheduler_registry
-from cacher_quantizer import cacher_quantizer_registry
+from lib.data import data_registry
+from lib.metric import metrics_registry
 
-from data import data_registry
-from metric import metrics_registry
+from utils.other import add_sample_imgs
+from utils.other import is_already_calculated
 
 ##########################################################################################
 ##########################################################################################
 
-def load_pipe(solver, scheduler, cacher_quantizer, optimize=False):
+def load_pipe(solver, scheduler, cacher_quantizer, is_optimize, add_vae):
   PipeClass = cacher_quantizer_registry[cacher_quantizer]
   SolverClass = solver_registry[solver]
   SchedulerClassMixin = scheduler_registry[scheduler]
   
+  pipe = PipeClass.from_pretrained()
+
+  # freeze pipe
+  for module in pipe.components.values():
+    if isinstance(module, torch.nn.Module):
+      for param in module.parameters():
+        param.requires_grad = False
+
   class SolverSchedulerConstructor(SolverClass, SchedulerClassMixin):
     def set_timesteps(self, *args, **kwargs):
       SchedulerClassMixin.set_timesteps(self, *args, **kwargs)
-  
-  pipe = PipeClass.from_pretrained()
   pipe.scheduler = SolverSchedulerConstructor()
 
   pipe = pipe.to('cuda')
   pipe.set_progress_bar_config(disable=True)  
 
-  # torch compile !cp /usr/include/crypt.h /home/ekneudachina/.conda/envs/philurame_venv/include/python3.9/
-  if optimize:
-    pipe.unet = torch.compile(pipe.unet, mode='reduce-overhead', fullgraph=True)
+  if is_optimize:
+    # torch compile !cp /usr/include/crypt.h /home/ekneudachina/.conda/envs/philurame_venv/include/python3.9/
     # pipe.vae.decode = torch.compile(pipe.vae.decode, mode='reduce-overhead', fullgraph=True)
+    pipe.unet = torch.compile(pipe.unet, mode='reduce-overhead', fullgraph=True)
+  if add_vae:
+    pipe.vae = AutoencoderKL.from_pretrained(
+      'madebyollin/sdxl-vae-fp16-fix',
+      use_safetensors=True,
+      torch_dtype=torch.float16,
+    ).to('cuda')
   return pipe
 
 def load_data(data_path, dataset, max_samples):
@@ -41,6 +55,8 @@ def get_metrics(**kwargs):
   res_metrics = {}
   for metric_name in metrics_registry:
     metricInstance = metrics_registry[metric_name](**kwargs)
+    if hasattr(metricInstance, 'to'):
+      metricInstance = metricInstance.to('cpu')
     res_metrics[metric_name] = metricInstance()
   return res_metrics
 
@@ -78,49 +94,50 @@ def main(**kwargs):
   assert isinstance(nfe, int) and nfe > 0
   assert os.path.exists(root)
   assert bool(is_generate) != os.path.exists(save_path)
+  assert bool(is_generate) or is_already_calculated(save_path, calculated_path=os.path.join(root, 'METRICS.csv'))
   assert 0 < max_samples <= 10000
 
   data = load_data(data_path, dataset, max_samples)
-  pipe = load_pipe(solver, scheduler, cacher_quantizer, optimize=is_generate)
-
-  is_metrics = not is_generate
+  pipe = load_pipe(solver, scheduler, cacher_quantizer, 
+                   is_optimize=is_generate and cacher_quantizer == 'NONE', 
+                   add_vae=not is_generate
+                   )
 
   if is_generate: 
     ########################################
     # GENERAtE
     ########################################
-
-    os.makedirs(os.path.dirname(save_path), exist_ok=False)
+  
+    os.makedirs(os.path.dirname(save_path), exist_ok=True)
     gen_latents = generate(pipe, data.anns, nfe)
     torch.save(gen_latents, save_path)
-
-    if solver == 'DDIM':
-      gen_imgs = decode_vae(pipe, gen_latents)
-      del gen_latents
-      torch.save(gen_imgs, save_path)
   
-  elif is_metrics:
+  else:
     ########################################
     # METRICS
     ########################################
 
     is_already_decoded = torch.load(save_path, mmap=True).shape[1:] == (3, 1024, 1024)
     if is_already_decoded:
-      gen_imgs = torch.load(save_path, map_location='cpu') # too large for cuda
+      gen_imgs = torch.load(save_path, map_location='cpu')
     else: 
-      gen_latents = torch.load(save_path, map_location='cuda')
+      gen_latents = torch.load(save_path, map_location='cpu')
       gen_imgs = decode_vae(pipe, gen_latents)
       del gen_latents
 
+    # optimal LPIPS is not supported yet, so path_ddim is not needed actually
     path_ddim = os.path.join(data_path, cacher_quantizer, f'{dataset}_{nfe}', f'DDIM_{scheduler}.pt')
     metrics = get_metrics(
       path_ddim=path_ddim, 
-      fake_imgs=gen_latents, 
+      fake_imgs=gen_imgs, 
       real_imgs=data.imgs, 
       real_anns=data.anns,
       pipe=pipe, 
       nfe=nfe
       )
+    
+     # add image for quick debug
+    metrics.update(add_sample_imgs(dataset, data, gen_imgs))
 
     ########################################
     # LOG
@@ -132,23 +149,19 @@ def main(**kwargs):
       entity  = "philurame",
       name = f'{dataset}_{cacher_quantizer}_{solver}_{scheduler}_{nfe}',
       config = kwargs,
-      save_code = True
+      save_code = True,
+      mode='offline'
     )
-
-    # add image to metrics
-    caption = data.anns[302 if dataset == 'PARTI' else 5449]
-    gen_img  = wandb.Image(
-      Image.fromarray(gen_imgs[302 if dataset == 'PARTI' else 5449].permute(1, 2, 0).numpy()),
-      caption = caption)
-    real_img = None if dataset == 'PARTI' else wandb.Image(
-      Image.fromarray(data.imgs[5449].permute(1, 2, 0).numpy()),
-      caption = caption)
-    metrics['gen_img']  = gen_img
-    metrics['real_img'] = real_img
 
     wandb.log(metrics)
     wandb.finish()
 
+    # try to sync with wandb online:
+    run_path = [x for x in os.listdir('wandb') if run.id in x][0]
+    run_path = os.path.join('wandb', run_path)
+    os.system(f'wandb sync {run_path}')
+
 
 if __name__ == '__main__':
   main()
+  print('_ALL_DONE')

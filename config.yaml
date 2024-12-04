@@ -1,19 +1,26 @@
 generate: 1
 
 solvers:
-- EULER
+- DDIM
+- DPMS
+- DEIS
 
 schedulers:
 - LINEAR
+- SNR
+- KARRAS
+- AYS
 
 cachers_quantizers:
 - NONE
+- DEEPCACHE
 
 nfes:
 - 10
 - 17
 - 25
 - 50
+- 100
 
 datasets:
 - COCO
