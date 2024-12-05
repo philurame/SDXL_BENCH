@@ -1,6 +1,5 @@
 import torch, os
 from tqdm import tqdm
-from generate_decode import decode_vae
 
 from torch.profiler import profile, record_function, ProfilerActivity
 import time
@@ -61,7 +60,7 @@ class SEC_PER_IMG(RequiredDataMixin):
       self.pipe(self.bench_prompt, 
              num_inference_steps=self.nfe, 
              guidance_scale=5, 
-             generator = torch.Generator(device='cuda').manual_seed(i),
+             generator = torch.Generator(device='cpu').manual_seed(i),
              return_dict=False, 
              output_type='latent')
       torch.cuda.synchronize()
@@ -83,6 +82,10 @@ class LPIPSMetric(LearnedPerceptualImagePatchSimilarity, RequiredDataMixin):
 
   @torch.inference_mode()   
   def __call__(self):
+    '''
+    need better implementation
+    
+    # non-optimized implementation:
     self.reset()
     if os.path.exists(self.path_ddim):
       ddim_imgs = torch.load(self.path_ddim, map_location='cpu')
@@ -96,6 +99,8 @@ class LPIPSMetric(LearnedPerceptualImagePatchSimilarity, RequiredDataMixin):
                           ddim_imgs[i:i+self.batch_size].to(self.device, dtype=torch.float16)/255)
       return self.compute().item()
     return None
+    '''
+    return  None
 
 @metrics_registry.add_to_registry('IS')
 class ISMetric(InceptionScore, RequiredDataMixin):

@@ -17,7 +17,7 @@ def generate(pipe, anns, nfe, batch_size=16):
 
   seed_everything(42)
   for i, prompts in tqdm(enumerate(dataloader), total=len(dataloader), desc='generate...'):
-    generators = [torch.Generator(device='cuda').manual_seed(i*batch_size+g) for g in range(len(prompts))]
+    generators = [torch.Generator(device='cpu').manual_seed(i*batch_size+g) for g in range(len(prompts))]
     latents = pipe(prompts, 
                    num_inference_steps=nfe, 
                    guidance_scale=5, 

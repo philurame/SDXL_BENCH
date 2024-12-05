@@ -1,6 +1,11 @@
 import torch
 import numpy as np
-from diffusers import EulerDiscreteScheduler, DPMSolverMultistepScheduler, DEISMultistepScheduler, UniPCMultistepScheduler
+from diffusers import (
+  EulerDiscreteScheduler, 
+  DPMSolverMultistepScheduler, 
+  DEISMultistepScheduler, 
+  UniPCMultistepScheduler
+  )
 
 from utils.class_registry import ClassRegistry
 solver_registry = ClassRegistry()
@@ -11,10 +16,13 @@ scheduler_registry = ClassRegistry()
 #####################################################################################################
 
 class BaseSolverMixin:
+  config = dict(beta_start= 0.00085,
+    beta_end= 0.012,
+    beta_schedule= 'scaled_linear',
+    timestep_spacing = 'leading',
+    steps_offset=0
+    )
   def _convert_to_lu(self, in_lambdas: torch.Tensor, num_inference_steps) -> torch.Tensor:
-    '''
-    necessary for LogSNR scheduler
-    '''
     lambda_min: float = in_lambdas[-1].item()
     lambda_max: float = in_lambdas[0].item()
     ramp = np.linspace(0, 1, num_inference_steps)
@@ -23,37 +31,53 @@ class BaseSolverMixin:
 
 @solver_registry.add_to_registry("EULER")
 class EULERBaseSolver(EulerDiscreteScheduler, BaseSolverMixin):
-  def __init__(self):
-    super().__init__()
-    self.config.solver_order = 1
+  @classmethod
+  def from_config(cls):
+    solver = super().from_config(
+      BaseSolverMixin.config,
+      solver_order = 1
+      )
+    return solver
 
 @solver_registry.add_to_registry("DDIM")
 class DDIMBaseSolver(DPMSolverMultistepScheduler, BaseSolverMixin):
-  def __init__(self):
-    '''
-    see ../notebooks/DDIM_vs_DPMS.ipynb
-    '''
-    super().__init__(
+  @classmethod
+  def from_config(cls):
+    solver = super().from_config(
+      BaseSolverMixin.config,
       solver_order=1, 
       algorithm_type='dpmsolver++', 
       final_sigmas_type='zero'
     )
+    return solver
 
 @solver_registry.add_to_registry("DPMS")
 class DPMSBaseSolver(DPMSolverMultistepScheduler, BaseSolverMixin):
-  def __init__(self):
-    super().__init__()
+  @classmethod
+  def from_config(cls):
+    solver = super().from_config(
+      BaseSolverMixin.config
+    )
+    return solver
 
 @solver_registry.add_to_registry("DEIS")
 class DEISBaseSolver(DEISMultistepScheduler, BaseSolverMixin):
-  def __init__(self):
-    super().__init__()
-    self.config.final_sigmas_type = "sigma_min"
+  @classmethod
+  def from_config(cls):
+    solver = super().from_config(
+      BaseSolverMixin.config,
+      final_sigmas_type = "sigma_min"
+    )
+    return solver
 
 @solver_registry.add_to_registry("UNIPC")
 class UNIPCBaseSolver(UniPCMultistepScheduler, BaseSolverMixin):
-  def __init__(self):
-    super().__init__() # default solver order = 2; check if it is equal to DPMS???
+  @classmethod
+  def from_config(cls):
+    solver = super().from_config(
+      BaseSolverMixin.config
+    )
+    return solver
 
 #####################################################################################################
 # SCHEDULERTS (MIXINS)
@@ -61,9 +85,6 @@ class UNIPCBaseSolver(UniPCMultistepScheduler, BaseSolverMixin):
 
 class BaseScheduler:
   def _set_timesteps_common(self, sigmas, timesteps, device):
-    '''
-    common part of all solvers, taken from DPMSolverMultistepScheduler
-    '''
     if self.config.final_sigmas_type == "sigma_min":
       sigma_last = ((1 - self.alphas_cumprod[0]) / self.alphas_cumprod[0]) ** 0.5
     elif self.config.final_sigmas_type == "zero":
@@ -84,9 +105,6 @@ class BaseScheduler:
 @scheduler_registry.add_to_registry("DDIM")
 class DDIMScheduler(BaseScheduler):
   def set_timesteps(self, num_inference_steps = None, device = None, timesteps = None):
-    '''
-    original DDIM scheduler
-    '''
     step_ratio = 1000 // num_inference_steps
     timesteps = (np.arange(0, num_inference_steps) * step_ratio).round()[::-1].copy().astype(np.int64)
     sigmas = np.array(((1 - self.alphas_cumprod) / self.alphas_cumprod) ** 0.5)
@@ -96,10 +114,6 @@ class DDIMScheduler(BaseScheduler):
 @scheduler_registry.add_to_registry("LINEAR")
 class LINEARScheduler(BaseScheduler):
    def set_timesteps(self, num_inference_steps = None, device = None, timesteps = None):
-    '''
-    linear scheduler taken from DPMSolverMultistepScheduler
-    last step is cutted here 
-    '''
     timesteps = (
       np.linspace(0, self.config.num_train_timesteps - 1, num_inference_steps + 1) # why prevent ts to be zero?
       .round()[::-1][:-1]
@@ -123,9 +137,6 @@ class KARRASScheduler(BaseScheduler):
 @scheduler_registry.add_to_registry("SNR")
 class SNRScheduler(BaseScheduler):
   def set_timesteps(self, num_inference_steps = None, device = None, timesteps = None):
-    '''
-    uniform LogSNR scheduler
-    '''
     sigmas = np.array(((1 - self.alphas_cumprod) / self.alphas_cumprod) ** 0.5)
     log_sigmas = np.log(sigmas)
     lambdas = np.flip(log_sigmas.copy())
@@ -137,6 +148,8 @@ class SNRScheduler(BaseScheduler):
 @scheduler_registry.add_to_registry("AYS")
 class AYSScheduler(BaseScheduler):
   def _loglinear_interp(self, t_steps, num_steps):
+    if num_steps == num_steps:
+      return t_steps
     xs = np.linspace(0, 1, len(t_steps))
     ys = np.log(t_steps[::-1])
     new_xs = np.linspace(0, 1, num_steps)
@@ -147,7 +160,7 @@ class AYSScheduler(BaseScheduler):
   def _get_ays_timesteps_ts(self, num_inference_steps):
     ays_ts_10 = np.array([999, 845, 730, 587, 443, 310, 193, 116, 53, 13])
     new_ts = self._loglinear_interp(ays_ts_10, num_inference_steps)
-    return new_ts.astype(int)
+    return new_ts.round().astype(int)
   
   def set_timesteps(self, num_inference_steps = None, device = None, timesteps = None):
     timesteps = self._get_ays_timesteps_ts(num_inference_steps)
