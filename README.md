@@ -97,6 +97,7 @@ rebalancing the contributions from the UNet’s skip connections and backbone fe
 
 ### `HQQ4`: Half-Quadratic Quantization in 4 bit
 - quantization of weights w.o. calibration data
+
 ![alt text](_tex_imgs/HQQ.png)
 <!-- $$\underset{W_e,\ Z,\ S}{\min}\left[\|W_e\|_{p<1}+\beta\|W_e-(W_f-\hat W_f(S,Z))\|^2_F\right]$$
 $$\hat W_f(S,Z)=S(\hat W - Z),\quad \hat W=\lfloor W S^{-1} + Z\rceil,\ \hat W-\text{4bit}$$ -->
@@ -107,6 +108,7 @@ $$\hat W_f(S,Z)=S(\hat W - Z),\quad \hat W=\lfloor W S^{-1} + Z\rceil,\ \hat W-\
 
 ### `VQDM4`: Vector Quantized Diffusion Model in 4 bit
 - quantization of weights based on calibration data
+
 ![alt text](_tex_imgs/VQDM.png)
 <!-- $$\underset{C, b}{\min } \| \mathbf{W X}-\left(\text { Concat }_{i, j} \sum_{m=1}^M C_m b_{i, j, m}\right) \mathbf{X} \|_2^2$$ -->
 - gradient optimization of float codebooks $C_m$ and beam search for discrete $b_{i,j,m}$ index-vectors
