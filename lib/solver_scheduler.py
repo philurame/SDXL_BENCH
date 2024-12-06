@@ -16,12 +16,30 @@ scheduler_registry = ClassRegistry()
 #####################################################################################################
 
 class BaseSolverMixin:
-  config = dict(beta_start= 0.00085,
-    beta_end= 0.012,
-    beta_schedule= 'scaled_linear',
-    timestep_spacing = 'leading',
-    steps_offset=0
-    )
+  config = {
+    'num_train_timesteps': 1000,
+     'beta_start': 0.00085,
+     'beta_end': 0.012,
+     'beta_schedule': 'scaled_linear',
+     'trained_betas': None,
+     'prediction_type': 'epsilon',
+     'interpolation_type': 'linear',
+     'use_karras_sigmas': False,
+     'use_exponential_sigmas': False,
+     'use_beta_sigmas': False,
+     'sigma_min': None,
+     'sigma_max': None,
+     'timestep_spacing': 'leading',
+     'timestep_type': 'discrete',
+     'steps_offset': 1,
+     'rescale_betas_zero_snr': False,
+     'final_sigmas_type': 'zero', # or 'sigma_min'?
+     'clip_sample': False,
+     'sample_max_value': 1.0,
+     'set_alpha_to_one': False,
+     'skip_prk_steps': True,
+    }
+
   def _convert_to_lu(self, in_lambdas: torch.Tensor, num_inference_steps) -> torch.Tensor:
     lambda_min: float = in_lambdas[-1].item()
     lambda_max: float = in_lambdas[0].item()
@@ -45,9 +63,9 @@ class DDIMBaseSolver(DPMSolverMultistepScheduler, BaseSolverMixin):
   def from_config(cls):
     solver = super().from_config(
       BaseSolverMixin.config,
-      solver_order=1, 
-      algorithm_type='dpmsolver++', 
-      final_sigmas_type='zero'
+      solver_order = 1, 
+      algorithm_type = 'dpmsolver++', 
+      final_sigmas_type = 'zero'
     )
     return solver
 
@@ -56,7 +74,18 @@ class DPMSBaseSolver(DPMSolverMultistepScheduler, BaseSolverMixin):
   @classmethod
   def from_config(cls):
     solver = super().from_config(
-      BaseSolverMixin.config
+      BaseSolverMixin.config,
+    )
+    return solver
+
+@solver_registry.add_to_registry("DPMS_ORIG")
+class DPMSBaseSolver(DPMSolverMultistepScheduler, BaseSolverMixin):
+  @classmethod
+  def from_config(cls):
+    solver = super().from_config(
+      BaseSolverMixin.config,
+      lower_order_final = False,
+      final_sigmas_type = "sigma_min"
     )
     return solver
 
@@ -66,7 +95,6 @@ class DEISBaseSolver(DEISMultistepScheduler, BaseSolverMixin):
   def from_config(cls):
     solver = super().from_config(
       BaseSolverMixin.config,
-      final_sigmas_type = "sigma_min"
     )
     return solver
 
@@ -75,7 +103,7 @@ class UNIPCBaseSolver(UniPCMultistepScheduler, BaseSolverMixin):
   @classmethod
   def from_config(cls):
     solver = super().from_config(
-      BaseSolverMixin.config
+      BaseSolverMixin.config,
     )
     return solver
 
@@ -85,9 +113,9 @@ class UNIPCBaseSolver(UniPCMultistepScheduler, BaseSolverMixin):
 
 class BaseScheduler:
   def _set_timesteps_common(self, sigmas, timesteps, device):
-    if self.config.final_sigmas_type == "sigma_min":
+    if self.config.get("final_sigmas_type", "zero") == "sigma_min":
       sigma_last = ((1 - self.alphas_cumprod[0]) / self.alphas_cumprod[0]) ** 0.5
-    elif self.config.final_sigmas_type == "zero":
+    elif self.config.get("final_sigmas_type", "zero") == "zero":
       sigma_last = 0
     else:
       raise ValueError(
@@ -97,7 +125,7 @@ class BaseScheduler:
     self.sigmas = torch.from_numpy(sigmas).to("cpu")
     self.timesteps = torch.from_numpy(timesteps).to(device=device, dtype=torch.int64)
     self.num_inference_steps = len(timesteps)
-    self.model_outputs = [None] * self.config.solver_order
+    self.model_outputs = [None] * self.config.get('solver_order', 1)
     self.lower_order_nums = 0
     self._step_index = None
     self._begin_index = None
@@ -148,8 +176,6 @@ class SNRScheduler(BaseScheduler):
 @scheduler_registry.add_to_registry("AYS")
 class AYSScheduler(BaseScheduler):
   def _loglinear_interp(self, t_steps, num_steps):
-    if num_steps == num_steps:
-      return t_steps
     xs = np.linspace(0, 1, len(t_steps))
     ys = np.log(t_steps[::-1])
     new_xs = np.linspace(0, 1, num_steps)

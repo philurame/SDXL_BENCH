@@ -1,5 +1,12 @@
-import torch
+import torch, os
 import numpy as np
+
+from diffusers import StableDiffusionXLPipeline
+from DeepCache import DeepCacheSDHelper
+from tgate import TgateSDXLLoader
+
+import sys
+from utils.hqq_q import q_unet
 
 from utils.class_registry import ClassRegistry
 cacher_quantizer_registry = ClassRegistry()
@@ -7,9 +14,6 @@ cacher_quantizer_registry = ClassRegistry()
 #####################################################################################################
 # CACHERS
 #####################################################################################################
-from diffusers import StableDiffusionXLPipeline
-from DeepCache import DeepCacheSDHelper
-from tgate import TgateSDXLLoader
 
 @cacher_quantizer_registry.add_to_registry("NONE")
 class BasePipe(StableDiffusionXLPipeline):
@@ -59,8 +63,6 @@ class TGATE(BasePipe):
 #####################################################################################################
 # QUANTIZERS
 #####################################################################################################
-import sys
-from utils.hqq_q import q_unet
 
 @cacher_quantizer_registry.add_to_registry("HQQ4")
 class HQQ4(BasePipe):
@@ -78,13 +80,13 @@ class HQQ3(BasePipe):
     q_unet(pipe, nbits=3)
     return pipe
 
-# from src.aq import QuantizedConv2D, QuantizedLinear 
 # @cacher_quantizer_registry.add_to_registry("VQDM4")
 # class VQDM4(BasePipe):
 #   @classmethod
 #   def from_pretrained(cls):
 #     pipe = super().from_pretrained()
-#     sys.path.append('/home/mdnikolaev/philurame/SDXL_METRICS')
-#     unet = torch.load("/home/mdnikolaev/philurame/Q_LIB/unets/vqdm_4/quantized_unet.pickle", map_location="cuda")    
+#     vqdm4_dir_path = "/home/mdnikolaev/philurame/Q_LIB/unets/vqdm_4"
+#     sys.path.append(vqdm4_dir_path) # add "src" to path
+#     unet = torch.load(os.path.join(vqdm4_dir_path, "quantized_unet.pickle"), map_location="cuda")    
 #     pipe.unet = unet
 #     return pipe

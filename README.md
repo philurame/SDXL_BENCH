@@ -29,33 +29,33 @@
 ## Solvers
 
 ### `DDIM`
-$$x_{t-1}=\sqrt{\frac{\alpha_{t-1}}{\alpha_t}}x_t+\sqrt{\alpha_{t-1}}\ \hat\varepsilon_{t}(\sigma_{t-1}-\sigma_t),\quad \sigma_t=\sqrt{1-\alpha_t}$$
+
+![alt text](_tex_imgs/DDIM.png)
+<!-- $$x_{t-1}=\sqrt{\frac{\alpha_{t-1}}{\alpha_t}}x_t+\sqrt{\alpha_{t-1}}\ \hat\varepsilon_{t}(\sigma_{t-1}-\sigma_t),\quad \sigma_t=\sqrt{1-\alpha_t}$$ -->
 
 ### `DPMS`: DpmSolver++(2M)
-$$x_{t-1}={\dfrac{\sigma_{t-1}}{\sigma_t}}x_t-\sqrt{\alpha_{t-1}}(e^{\lambda_t-\lambda_{t-1}}-1)D_t$$
-
-$$D_t=(1+k_t)\hat x_t-k_t\hat x_{t+1},\quad \hat x_{t}=\frac{1}{\sqrt{\alpha_{t}}}(x_t-\sigma_t\hat\varepsilon_{t}),\quad k_t=\frac{\lambda_t-\lambda_{t-1}}{2(\lambda_{t+1}-\lambda_{t})},\quad \lambda_t=\log\frac{\sqrt{\alpha_t}}{\sigma_t}$$
+![alt text](_tex_imgs/DPMS.png)
+<!-- $$x_{t-1}={\dfrac{\sigma_{t-1}}{\sigma_t}}x_t-\sqrt{\alpha_{t-1}}(e^{\lambda_t-\lambda_{t-1}}-1)D_t$$
+$$D_t=(1+k_t)\hat x_t-k_t\hat x_{t+1},\quad \hat x_{t}=\frac{1}{\sqrt{\alpha_{t}}}(x_t-\sigma_t\hat\varepsilon_{t}),\quad k_t=\frac{\lambda_t-\lambda_{t-1}}{2(\lambda_{t+1}-\lambda_{t})},\quad \lambda_t=\log\frac{\sqrt{\alpha_t}}{\sigma_t}$$ -->
 
 ### `DEIS`: Exponential Integrator, "2 order" (which is actually 1th)
-
-$$x_{t_{i-1}}=\sqrt{\dfrac{\alpha_{t_{i-1}}}{\alpha_{t_{i}}}}x_{t_i}+C_0\hat\varepsilon_{t_i}+C_1\hat\varepsilon_{t_{i+1}}$$
-
-$$C_k=\frac12\int_{t_{i}}^{t_{i-1}}\sqrt{\dfrac{\alpha_{t_{i-1}}}{\alpha_{\tau}}}(-\dfrac{d\log\alpha_{\tau}}{d\tau})\dfrac{1}{\sigma_\tau}P_k(\tau) d\tau,\ P_1(\tau)=\dfrac{\tau-t_{i+1}}{t_i-t_{i+1}},\ P_2(\tau)=\dfrac{\tau-t_{i}}{t_{i+1}-t_{i}}$$
+![alt text](_tex_imgs/DEIS.png)
+<!-- $$x_{t_{i-1}}=\sqrt{\dfrac{\alpha_{t_{i-1}}}{\alpha_{t_{i}}}}x_{t_i}+C_0\hat\varepsilon_{t_i}+C_1\hat\varepsilon_{t_{i+1}}$$
+$$C_k=\frac12\int_{t_{i}}^{t_{i-1}}\sqrt{\dfrac{\alpha_{t_{i-1}}}{\alpha_{\tau}}}(-\dfrac{d\log\alpha_{\tau}}{d\tau})\dfrac{1}{\sigma_\tau}P_k(\tau) d\tau,\ P_1(\tau)=\dfrac{\tau-t_{i+1}}{t_i-t_{i+1}},\ P_2(\tau)=\dfrac{\tau-t_{i}}{t_{i+1}-t_{i}}$$ -->
 
 ### `UNIPC`: Unified Predictor-Corrector, p=2
 - possible to use "Corrector" with other solvers
 - github cannot render TeX below
 
-$$\text{predictor:}\  \tilde{x}_{t_i}=\frac{\sigma_{t_i}}{\sigma_{t_{i-1}}} \tilde{x}_{t_{i-1}}+\alpha_{t_i}\left(1-e^{-h_i}\right) x_\theta\left(\tilde{x}_{t_{i-1}}, t_{i-1}\right)+\alpha_{t_i} (e^{h_i}-1) \sum_{m=1}^{p-1} a_m^p D_m^x$$
-
+![alt text](_tex_imgs/UNIPC.png)
+<!-- $$\text{predictor:}\  \tilde{x}_{t_i}=\frac{\sigma_{t_i}}{\sigma_{t_{i-1}}} \tilde{x}_{t_{i-1}}+\alpha_{t_i}\left(1-e^{-h_i}\right) x_\theta\left(\tilde{x}_{t_{i-1}}, t_{i-1}\right)+\alpha_{t_i} (e^{h_i}-1) \sum_{m=1}^{p-1} a_m^p D_m^x$$
 $$\text{corrector:}\ \tilde{x}_{t_i}^c=\frac{\sigma_{t_i}}{\sigma_{t_{i-1}}} \tilde{x}_{t_{i-1}}+\alpha_{t_i}\left(1-e^{-h_i}\right) x_\theta\left(\tilde{x}_{t_{i-1}}, t_{i-1}\right)+\alpha_{t_i} (e^{h_i}-1) \sum_{m=1}^p a_m^{p-1} D_m^x$$
-
-$$a_m^p=R^{-1}_p(h_i)g_p(h_i)/(e^{h_i}-1),\ D_m^x=x_\theta(t_i-m) - x_\theta(t_{i-1})$$
+$$a_m^p=R^{-1}_p(h_i)g_p(h_i)/(e^{h_i}-1),\ D_m^x=x_\theta(t_i-m) - x_\theta(t_{i-1})$$ -->
 
 
 ## Schedulers
-
-- SNR $\sigma_i:=\sqrt{\dfrac{1-\tilde\alpha_{i}}{\tilde\alpha_{i}}},\ \hat\alpha_i=\prod\limits_{k\leq i}\alpha_k,\ \alpha_0\approx 1$
+![alt text](_tex_imgs/SNR.png)
+<!-- - SNR $\sigma_i:=\sqrt{\dfrac{1-\tilde\alpha_{i}}{\tilde\alpha_{i}}},\ \hat\alpha_i=\prod\limits_{k\leq i}\alpha_k,\ \alpha_0\approx 1$ -->
 
 ### `FREEU`
 rebalancing the contributions from the UNet’s skip connections and backbone feature maps by:
@@ -63,23 +63,26 @@ rebalancing the contributions from the UNet’s skip connections and backbone fe
 - weakening of high-frequency features in skip-connection using fourier domain
 
 ### `LINEAR`
-
-- $t_i=\lfloor999 - i\frac{999}{\text{NFE}}\rceil$
+![alt text](_tex_imgs/LINEAR.png)
+<!-- - $t_i=\lfloor999 - i\frac{999}{\text{NFE}}\rceil$ -->
 
 ### `DDIM`: original time scheduling for DDIM
-- $t_i=(\text{NFE}-1-i)\cdot\lfloor \frac{1000}{\text{NFE}}\rceil$
+![alt text](_tex_imgs/DDIM_S.png)
+<!-- - $t_i=(\text{NFE}-1-i)\cdot\lfloor \frac{1000}{\text{NFE}}\rceil$ -->
 
 ### `AYS`: Align Your Steps
 - `[999, 845, 730, 587, 443, 310, 193, 116, 53, 13]` for `NFE = 10`
 - [loglinear interpolation](https://research.nvidia.com/labs/toronto-ai/AlignYourSteps/howto.html) timesteps for `NFE != 10`
 
 ### `KARRAS`: "Karras Sigmas" from EDM
-- $\hat\sigma_i=\left(\sigma_{\max}^{1/p}+\frac{i}{\text{NFE}-1}(\sigma_{\min}^{1/p}- \sigma_{\max}^{1/p})\right)^p,\quad p=7$
-- $t_i=\underset{k}{\text{argmin }}|\log\hat\sigma_i-\log\sigma_k|$
+![alt text](_tex_imgs/KARRAS.png)
+<!-- - $\hat\sigma_i=\left(\sigma_{\max}^{1/p}+\frac{i}{\text{NFE}-1}(\sigma_{\min}^{1/p}- \sigma_{\max}^{1/p})\right)^p,\quad p=7$
+- $t_i=\underset{k}{\text{argmin }}|\log\hat\sigma_i-\log\sigma_k|$ -->
 
 ### `SNR`: LogSNR uniform from DPMSolver
-- $\hat\sigma_i=\log\sigma_{\max}+\frac{i}{\text{NFE}-1}(\log\sigma_{\min}-\log\sigma_{\max})$
-- $t_i=\underset{k}{\text{argmin }}|\hat\sigma_i-\sigma_k|$
+![alt text](_tex_imgs/SNR_S.png)
+<!-- - $\hat\sigma_i=\log\sigma_{\max}+\frac{i}{\text{NFE}-1}(\log\sigma_{\min}-\log\sigma_{\max})$
+- $t_i=\underset{k}{\text{argmin }}|\hat\sigma_i-\sigma_k|$ -->
 
 ## Cachers, Quantizers
 
@@ -94,8 +97,9 @@ rebalancing the contributions from the UNet’s skip connections and backbone fe
 
 ### `HQQ4`: Half-Quadratic Quantization in 4 bit
 - quantization of weights w.o. calibration data
-$$\underset{W_e,\ Z,\ S}{\min}\left[\|W_e\|_{p<1}+\beta\|W_e-(W_f-\hat W_f(S,Z))\|^2_F\right]$$
-$$\hat W_f(S,Z)=S(\hat W - Z),\quad \hat W=\lfloor W S^{-1} + Z\rceil,\ \hat W-\text{4bit}$$
+![alt text](_tex_imgs/HQQ.png)
+<!-- $$\underset{W_e,\ Z,\ S}{\min}\left[\|W_e\|_{p<1}+\beta\|W_e-(W_f-\hat W_f(S,Z))\|^2_F\right]$$
+$$\hat W_f(S,Z)=S(\hat W - Z),\quad \hat W=\lfloor W S^{-1} + Z\rceil,\ \hat W-\text{4bit}$$ -->
 
 ### `HQQ3`: Half-Quadratic Quantization in 3 bit
 - same as `HQQ4` for 3 bit quantization
@@ -103,6 +107,7 @@ $$\hat W_f(S,Z)=S(\hat W - Z),\quad \hat W=\lfloor W S^{-1} + Z\rceil,\ \hat W-\
 
 ### `VQDM4`: Vector Quantized Diffusion Model in 4 bit
 - quantization of weights based on calibration data
-$$\underset{C, b}{\min } \| \mathbf{W X}-\left(\text { Concat }_{i, j} \sum_{m=1}^M C_m b_{i, j, m}\right) \mathbf{X} \|_2^2$$
+![alt text](_tex_imgs/VQDM.png)
+<!-- $$\underset{C, b}{\min } \| \mathbf{W X}-\left(\text { Concat }_{i, j} \sum_{m=1}^M C_m b_{i, j, m}\right) \mathbf{X} \|_2^2$$ -->
 - gradient optimization of float codebooks $C_m$ and beam search for discrete $b_{i,j,m}$ index-vectors
 - takes ~16hrs on A100 (no finetune)
